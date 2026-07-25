@@ -116,6 +116,47 @@
   .modal .row button{ flex:1; padding:12px; border-radius:6px; font-weight:700; cursor:pointer; border:0; }
   .modal .cancel{ background:transparent; border:1px solid var(--panel2); color:#fff; }
   .modal .go{ background:var(--red); color:#fff; }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 700px){
+    body{ padding:10px; }
+    .header{ gap:14px; padding:14px; margin-bottom:16px; }
+    .header img.logo{ width:56px; height:56px; }
+    .header-text h1{ font-size:20px; }
+    .header-text p{ font-size:11px; letter-spacing:1px; }
+    #status{ display:none; }
+
+    .tabs{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px; padding-bottom:4px; }
+    .tab{ white-space:nowrap; padding:9px 14px; font-size:14px; }
+
+    .stats-grid{ grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .stat-card{ padding:14px; border-radius:6px; }
+    .stat-value{ font-size:30px; margin-bottom:3px; }
+    .stat-label{ font-size:10px; letter-spacing:.5px; }
+    .stat-card.active::after{ font-size:8px; top:6px; right:6px; }
+
+    .filter-info{ flex-direction:column; gap:10px; align-items:flex-start; padding:12px 14px; }
+    .sort-controls{ padding:12px 14px; margin-bottom:16px; }
+    .sort-group{ width:100%; }
+    .sort-group select{ flex:1; min-width:0; }
+
+    .section{ margin-bottom:20px; }
+    .section-header{ font-size:15px; }
+
+    /* order card: checkbox rail on the left, everything else stacks */
+    .order-card{ display:block; position:relative; padding:14px 14px 14px 62px; }
+    .checkbox-container{ position:absolute; left:14px; top:16px; }
+    .cb2{ display:flex; }
+    .customer-name{ font-size:15px; }
+    .lifter-tag{ display:inline-block; min-width:0; margin:8px 8px 0 0; }
+    .package-type{ margin-top:6px; }
+    .dl-input{ margin-top:8px; font-size:16px; padding:10px; } /* 16px stops iOS zoom */
+    .badge{ display:inline-block; min-width:0; margin:8px 8px 0 0; padding:5px 10px; }
+    .note-text{ margin-top:6px; }
+
+    .modal{ padding:18px; }
+    .overlay{ padding:12px; }
+  }
 </style>
 </head>
 <body>
