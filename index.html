@@ -54,7 +54,7 @@
   .orders-list{ display:grid; gap:12px; }
   .empty{ color:var(--mut); padding:16px 2px; font-size:14px; }
 
-  .order-card{ background:var(--panel); padding:16px 20px; border-radius:6px; display:grid; grid-template-columns:40px minmax(180px,1.7fr) 140px minmax(140px,1fr) minmax(190px,1.4fr) 104px 118px; gap:14px; align-items:center; border-left:3px solid var(--panel2); transition:background .2s; }
+  .order-card{ background:var(--panel); padding:16px 20px; border-radius:6px; display:grid; grid-template-columns:56px minmax(180px,1.7fr) 140px minmax(140px,1fr) minmax(190px,1.4fr) 104px 118px; gap:14px; align-items:center; border-left:3px solid var(--panel2); transition:background .2s; }
   .order-card:hover{ background:#222; }
   .order-card.same{ background:linear-gradient(90deg,#2a0000 0%,#1a1a1a 100%); border-left-color:var(--red); }
   .order-card.exp{ background:linear-gradient(90deg,#2a1600 0%,#1a1a1a 100%); border-left-color:var(--orange); }
@@ -67,6 +67,12 @@
   .checkbox:hover{ border-color:var(--green); background:var(--panel2); }
   .checkbox:checked{ background:var(--green); border-color:var(--green); }
   .checkbox:checked::after{ content:"\2713"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#000; font-weight:bold; font-size:16px; }
+  .checkbox:disabled{ cursor:default; }
+  .cb2{ flex-direction:column; gap:7px; }
+  .cb2 label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .cb2 .tag{ font-size:9px; font-weight:700; letter-spacing:.05em; color:var(--mut); }
+  .checkbox.sm{ width:18px; height:18px; }
+  .checkbox.sm:checked::after{ font-size:12px; }
 
   .customer-name{ font-size:16px; font-weight:600; color:#fff; }
   .sub{ display:block; font-size:12px; color:var(--mut); font-weight:400; margin-top:3px; text-decoration:none; }
@@ -258,26 +264,44 @@
     card.className='order-card'+(o.fulfilled?' done':(o.speed===0?' same':o.speed===1?' exp':''));
 
     var cbc=document.createElement('div'); cbc.className='checkbox-container';
-    var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
-    cb.onclick=function(e){
-      e.preventDefault();
-      if(o.fulfilled){ openDeliver(o); return; }
-      var link=(card._dl.value||'').trim();
+    function deliverPart(part, box){
+      var link=(card._dl && card._dl.value||'').trim();
       if(!/^https?:\/\//i.test(link)){
         card._dl.classList.add('bad');
         card._dlerr.textContent='Paste the delivery link first';
         card._dl.focus();
         return;
       }
-      cb.checked=true; cb.disabled=true; card._dl.disabled=true;
+      box.checked=true; box.disabled=true;
       card._dl.classList.remove('bad'); card._dlerr.textContent='Delivering...'; card._dlerr.style.color='var(--mut)';
-      api({action:'deliver',pin:PIN,order:o,link:link}).then(function(){ load(); })
+      api({action:'deliver',pin:PIN,order:o,link:link,part:part}).then(function(){ load(); })
         .catch(function(err){
-          cb.checked=false; cb.disabled=false; card._dl.disabled=false;
+          box.checked=false; box.disabled=false;
           card._dl.classList.add('bad'); card._dlerr.style.color=''; card._dlerr.textContent=err.message;
         });
-    };
-    cbc.appendChild(cb); card.appendChild(cbc);
+    }
+    if(o.split && !o.fulfilled){
+      cbc.classList.add('cb2');
+      var mk=function(tag, done, part, title){
+        var w=document.createElement('label'); w.title=title;
+        var c=document.createElement('input'); c.type='checkbox'; c.className='checkbox sm'; c.checked=done; c.disabled=done;
+        c.onclick=function(e){ e.preventDefault(); if(done) return; deliverPart(part,c); };
+        var s=document.createElement('span'); s.className='tag'; s.textContent=tag;
+        w.appendChild(c); w.appendChild(s);
+        return w;
+      };
+      cbc.appendChild(mk('PV', !o.mainOpen, 'main', 'Deliver photos/video (rush speed)'));
+      cbc.appendChild(mk('HL', !o.hlOpen, 'hl', 'Deliver highlight reel (1 week)'));
+    } else {
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
+      cb.onclick=function(e){
+        e.preventDefault();
+        if(o.fulfilled){ openDeliver(o); return; }
+        deliverPart('all', cb);
+      };
+      cbc.appendChild(cb);
+    }
+    card.appendChild(cbc);
 
     var who=document.createElement('div');
     var sub = o.lifter ? esc(o.name) : '';
