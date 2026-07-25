@@ -53,7 +53,7 @@
   .orders-list{ display:grid; gap:12px; }
   .empty{ color:var(--mut); padding:16px 2px; font-size:14px; }
 
-  .order-card{ background:var(--panel); padding:16px 20px; border-radius:6px; display:grid; grid-template-columns:40px minmax(210px,2fr) 150px minmax(150px,1fr) 118px 132px; gap:15px; align-items:center; border-left:3px solid var(--panel2); transition:background .2s; }
+  .order-card{ background:var(--panel); padding:16px 20px; border-radius:6px; display:grid; grid-template-columns:40px minmax(180px,1.7fr) 140px minmax(140px,1fr) minmax(190px,1.4fr) 104px 118px; gap:14px; align-items:center; border-left:3px solid var(--panel2); transition:background .2s; }
   .order-card:hover{ background:#222; }
   .order-card.exp{ background:linear-gradient(90deg,#2a0000 0%,#1a1a1a 100%); border-left-color:var(--red); }
   .order-card.done{ background:linear-gradient(90deg,#002a00 0%,#1a1a1a 100%); border-left-color:var(--green); opacity:.75; }
@@ -81,6 +81,13 @@
   .badge.hl{ background:var(--green); color:#000; }
   .badge.no-hl{ background:transparent; color:#404040; }
   .badge.view{ background:transparent; color:var(--green); border:1px solid var(--green); cursor:pointer; }
+  .dl-input{ width:100%; padding:8px 10px; border-radius:4px; border:1px solid var(--panel2); background:#000; color:#fff; font-size:12px; }
+  .dl-input:focus{ outline:none; border-color:var(--red); }
+  .dl-input.bad{ border-color:#ff5c5c; }
+  .dl-input:disabled{ opacity:.5; }
+  .dl-err{ color:#ff5c5c; font-size:11px; margin-top:3px; }
+  .dl-view{ color:var(--green); font-size:13px; text-decoration:none; }
+  .dl-view:hover{ text-decoration:underline; }
 
   .gate{ max-width:340px; margin:14vh auto; text-align:center; color:#fff; }
   .gate input{ width:100%; padding:12px; margin:14px 0; border-radius:6px; border:1px solid var(--panel2); background:#000; color:#fff; font-size:16px; text-align:center; }
@@ -243,7 +250,24 @@
 
     var cbc=document.createElement('div'); cbc.className='checkbox-container';
     var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
-    cb.onclick=function(e){ e.preventDefault(); openDeliver(o); };
+    cb.onclick=function(e){
+      e.preventDefault();
+      if(o.fulfilled){ openDeliver(o); return; }
+      var link=(card._dl.value||'').trim();
+      if(!/^https?:\/\//i.test(link)){
+        card._dl.classList.add('bad');
+        card._dlerr.textContent='Paste the delivery link first';
+        card._dl.focus();
+        return;
+      }
+      cb.checked=true; cb.disabled=true; card._dl.disabled=true;
+      card._dl.classList.remove('bad'); card._dlerr.textContent='Delivering...'; card._dlerr.style.color='var(--mut)';
+      api({action:'deliver',pin:PIN,order:o,link:link}).then(function(){ load(); })
+        .catch(function(err){
+          cb.checked=false; cb.disabled=false; card._dl.disabled=false;
+          card._dl.classList.add('bad'); card._dlerr.style.color=''; card._dlerr.textContent=err.message;
+        });
+    };
     cbc.appendChild(cb); card.appendChild(cbc);
 
     var who=document.createElement('div');
@@ -272,6 +296,24 @@
       return '<span'+(addon?' class="add"':'')+'>'+esc(i.title)+'</span>';
     }).join('');
     card.appendChild(pkg);
+
+    // delivery link column
+    var dlc=document.createElement('div');
+    if(o.fulfilled){
+      dlc.innerHTML=o.deliveredLink
+        ? '<a class="dl-view" href="'+esc(o.deliveredLink)+'" target="_blank" rel="noopener">view media</a>'
+        : '<span style="color:#404040">&mdash;</span>';
+    } else {
+      var di=document.createElement('input');
+      di.type='url'; di.className='dl-input'; di.placeholder='Paste delivery link';
+      di.value=o.deliveredLink||'';
+      di.onclick=function(e){ e.stopPropagation(); };
+      di.oninput=function(){ di.classList.remove('bad'); derr.textContent=''; };
+      var derr=document.createElement('div'); derr.className='dl-err';
+      dlc.appendChild(di); dlc.appendChild(derr);
+      card._dl=di; card._dlerr=derr;
+    }
+    card.appendChild(dlc);
 
     var hb=document.createElement('span');
     hb.className='badge '+(o.highlight?'hl':'no-hl');
