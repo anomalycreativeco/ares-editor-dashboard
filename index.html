@@ -7,7 +7,7 @@
 <title>ARES DIGITAL - Editor Dashboard</title>
 <link rel="icon" href="https://aresdigital.store/cdn/shop/files/ARES_DIGITAL_LOGO_TP.png?v=1717417198&width=60">
 <style>
-  :root{ --red:#ff0000; --bg:#0a0a0a; --panel:#1a1a1a; --panel2:#2a2a2a; --green:#00ff00; --txt:#c0c0c0; --mut:#808080; }
+  :root{ --red:#ff0000; --orange:#ff9500; --bg:#0a0a0a; --panel:#1a1a1a; --panel2:#2a2a2a; --green:#00ff00; --txt:#c0c0c0; --mut:#808080; }
   *{ margin:0; padding:0; box-sizing:border-box; }
   body{ font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:var(--bg); color:var(--txt); padding:20px; }
 
@@ -48,14 +48,16 @@
 
   .section{ margin-bottom:28px; }
   .section-header{ font-size:18px; font-weight:600; color:#fff; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid var(--panel2); text-transform:uppercase; letter-spacing:1px; }
-  .section-header.exp{ color:var(--red); border-bottom-color:var(--red); }
+  .section-header.same{ color:var(--red); border-bottom-color:var(--red); }
+  .section-header.exp{ color:var(--orange); border-bottom-color:var(--orange); }
   .section-header.done{ color:var(--green); border-bottom-color:var(--green); }
   .orders-list{ display:grid; gap:12px; }
   .empty{ color:var(--mut); padding:16px 2px; font-size:14px; }
 
   .order-card{ background:var(--panel); padding:16px 20px; border-radius:6px; display:grid; grid-template-columns:40px minmax(180px,1.7fr) 140px minmax(140px,1fr) minmax(190px,1.4fr) 104px 118px; gap:14px; align-items:center; border-left:3px solid var(--panel2); transition:background .2s; }
   .order-card:hover{ background:#222; }
-  .order-card.exp{ background:linear-gradient(90deg,#2a0000 0%,#1a1a1a 100%); border-left-color:var(--red); }
+  .order-card.same{ background:linear-gradient(90deg,#2a0000 0%,#1a1a1a 100%); border-left-color:var(--red); }
+  .order-card.exp{ background:linear-gradient(90deg,#2a1600 0%,#1a1a1a 100%); border-left-color:var(--orange); }
   .order-card.done{ background:linear-gradient(90deg,#002a00 0%,#1a1a1a 100%); border-left-color:var(--green); opacity:.75; }
   .order-card.done .customer-name{ text-decoration:line-through; color:var(--mut); }
   .order-card.hidden{ display:none; }
@@ -76,7 +78,7 @@
   .package-type .add{ color:var(--mut); font-size:12px; }
   .badge{ padding:6px 10px; border-radius:4px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; text-align:center; min-width:96px; display:inline-block; }
   .badge.same{ background:var(--red); color:#fff; }
-  .badge.exp{ background:var(--red); color:#fff; }
+  .badge.exp{ background:var(--orange); color:#000; }
   .badge.standard{ background:var(--panel2); color:var(--mut); }
   .badge.hl{ background:var(--green); color:#000; }
   .badge.no-hl{ background:transparent; color:#404040; }
@@ -151,9 +153,13 @@
     </div>
   </div>
 
-  <div class="section" id="secRush">
-    <div class="section-header exp">&#9889; Rush Orders (Same Day &amp; Expedited)</div>
-    <div class="orders-list" id="listRush"></div>
+  <div class="section" id="secSame">
+    <div class="section-header same">&#128293; Same Day</div>
+    <div class="orders-list" id="listSame"></div>
+  </div>
+  <div class="section" id="secExp">
+    <div class="section-header exp">&#9889; Expedited (48 Hours)</div>
+    <div class="orders-list" id="listExp"></div>
   </div>
   <div class="section" id="secStd">
     <div class="section-header">Standard Orders</div>
@@ -244,9 +250,8 @@
   }
 
   function orderCard(o){
-    var rush = o.speed<=1;
     var card=document.createElement('div');
-    card.className='order-card'+(o.fulfilled?' done':(rush?' exp':''));
+    card.className='order-card'+(o.fulfilled?' done':(o.speed===0?' same':o.speed===1?' exp':''));
 
     var cbc=document.createElement('div'); cbc.className='checkbox-container';
     var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
@@ -375,11 +380,13 @@
 
     var visible=orders.filter(passFilter);
     var cmp=sortCmp(document.getElementById('sortSelect').value);
-    var rush=visible.filter(function(o){return !o.fulfilled && o.speed<=1;}).sort(cmp);
+    var same=visible.filter(function(o){return !o.fulfilled && o.speed===0;}).sort(cmp);
+    var expd=visible.filter(function(o){return !o.fulfilled && o.speed===1;}).sort(cmp);
     var std=visible.filter(function(o){return !o.fulfilled && o.speed>1;}).sort(cmp);
     var done=visible.filter(function(o){return o.fulfilled;}).sort(cmp);
 
-    fill('listRush','secRush',rush,'No rush orders.');
+    fill('listSame','secSame',same,'No same-day orders.');
+    fill('listExp','secExp',expd,'No expedited orders.');
     fill('listStd','secStd',std,'No standard orders.');
     fill('listDone','secDone',done,'Nothing delivered yet.');
   }
