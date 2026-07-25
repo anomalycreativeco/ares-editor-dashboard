@@ -90,6 +90,10 @@
   .dl-err{ color:#ff5c5c; font-size:11px; margin-top:3px; }
   .dl-view{ color:var(--green); font-size:13px; text-decoration:none; }
   .dl-view:hover{ text-decoration:underline; }
+  .note-text{ display:block; color:var(--orange); font-size:12px; font-style:italic; margin-top:4px; }
+  .note-btn{ background:none; border:0; color:var(--mut); font-size:11px; cursor:pointer; padding:0; margin-top:3px; text-align:left; text-decoration:underline; }
+  .note-btn:hover{ color:#fff; }
+  .modal textarea{ width:100%; min-height:90px; padding:12px; border-radius:6px; border:1px solid var(--panel2); background:#000; color:#fff; font-size:14px; margin-bottom:6px; font-family:inherit; resize:vertical; }
 
   .gate{ max-width:340px; margin:14vh auto; text-align:center; color:#fff; }
   .gate input{ width:100%; padding:12px; margin:14px 0; border-radius:6px; border:1px solid var(--panel2); background:#000; color:#fff; font-size:16px; text-align:center; }
@@ -285,7 +289,13 @@
         (o.deliveredLink?' &middot; <a href="'+esc(o.deliveredLink)+'" target="_blank" rel="noopener">view media</a>':'')+'</span>';
     }
     who.innerHTML='<span class="customer-name">'+esc(displayName(o))+'</span>'+
-      '<span class="sub">'+sub+'</span>'+extra;
+      '<span class="sub">'+sub+'</span>'+extra+
+      (o.note?'<span class="note-text">&#128221; '+esc(o.note)+'</span>':'');
+    var nb=document.createElement('button');
+    nb.className='note-btn';
+    nb.textContent=o.note?'edit note':'+ add note';
+    nb.onclick=function(e){ e.stopPropagation(); openNote(o); };
+    who.appendChild(nb);
     card.appendChild(who);
 
     var tag=document.createElement('span');
@@ -400,6 +410,30 @@
 
   function applyView(){ renderMeet(); }
   function clearFilter(){ FILTER=null; renderMeet(); }
+
+  function openNote(o){
+    var ov=document.createElement('div'); ov.className='overlay';
+    ov.innerHTML=
+      '<div class="modal">'+
+      '<h2>'+(o.note?'Edit note':'Add note')+'</h2>'+
+      '<div class="meta">'+esc(o.name)+' &middot; '+esc(displayName(o))+'</div>'+
+      '<p>Saved onto the Shopify order itself, so it stays with the order after delivery. If the note names the real lifter (e.g. "order for Ashley Cook"), their Session/Platform/Flight fills in automatically from the roster.</p>'+
+      '<textarea id="nt" placeholder="e.g. Order for Ashley Cook - bench-only, deliver all video AND photos of her bench">'+esc(o.note||'')+'</textarea>'+
+      '<div class="err" id="nterr"></div>'+
+      '<div class="row"><button class="cancel" id="nc">Cancel</button>'+
+      '<button class="go" id="ng">Save note</button></div>'+
+      '</div>';
+    document.body.appendChild(ov);
+    var ta=ov.querySelector('#nt'); ta.focus();
+    ov.querySelector('#nc').onclick=function(){ ov.remove(); };
+    ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+    var g=ov.querySelector('#ng');
+    g.onclick=function(){
+      g.disabled=true; g.textContent='Saving...';
+      api({action:'note',pin:PIN,orderId:o.id,note:ta.value.trim()}).then(function(){ ov.remove(); load(); })
+        .catch(function(e){ g.disabled=false; g.textContent='Try again'; ov.querySelector('#nterr').textContent=e.message; });
+    };
+  }
 
   function openDeliver(o){
     var resend=o.fulfilled;
