@@ -234,6 +234,14 @@
   }
 
   function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // Accept full URLs or bare domains ("youtube.com" -> "https://youtube.com").
+  function normalizeLink(s){
+    s=(s||'').trim();
+    if(!s) return '';
+    if(/^https?:\/\//i.test(s)) return s;
+    if(/^[^\s]+\.[^\s]{2,}/.test(s)) return 'https://'+s;
+    return '';
+  }
   function fmtDate(s){ if(!s) return ''; var d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); }
   function displayName(o){ return o.lifter || o.name; }
   function speedLabel(s){ return s===0?'Same Day':s===1?'Expedited':'Standard'; }
@@ -306,13 +314,14 @@
 
     var cbc=document.createElement('div'); cbc.className='checkbox-container';
     function deliverPart(part, box){
-      var link=(card._dl && card._dl.value||'').trim();
-      if(!/^https?:\/\//i.test(link)){
+      var link=normalizeLink(card._dl && card._dl.value);
+      if(!link){
         card._dl.classList.add('bad');
         card._dlerr.textContent='Paste the delivery link first';
         card._dl.focus();
         return;
       }
+      card._dl.value=link;
       box.checked=true; box.disabled=true;
       card._dl.classList.remove('bad'); card._dlerr.textContent='Delivering...'; card._dlerr.style.color='var(--mut)';
       api({action:'deliver',pin:PIN,order:o,link:link,part:part}).then(function(){ load(); })
@@ -391,6 +400,10 @@
       di.value=o.deliveredLink||'';
       di.onclick=function(e){ e.stopPropagation(); };
       di.oninput=function(){ di.classList.remove('bad'); derr.textContent=''; };
+      di.onblur=function(){
+        var n=normalizeLink(di.value);
+        if(n){ di.value=n; di.classList.remove('bad'); derr.textContent=''; }
+      };
       var derr=document.createElement('div'); derr.className='dl-err';
       dlc.appendChild(di); dlc.appendChild(derr);
       card._dl=di; card._dlerr=derr;
@@ -521,8 +534,9 @@
     ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
     var g=ov.querySelector('#dg');
     g.onclick=function(){
-      var link=input.value.trim();
-      if(!/^https?:\/\//i.test(link)){ ov.querySelector('#dlerr').textContent='Enter a valid media link (must start with http).'; return; }
+      var link=normalizeLink(input.value);
+      if(!link){ ov.querySelector('#dlerr').textContent='Enter a valid media link.'; return; }
+      input.value=link;
       g.disabled=true; g.textContent='Sending...';
       api({action:'deliver',pin:PIN,order:o,link:link}).then(function(){ ov.remove(); load(); })
         .catch(function(e){ g.disabled=false; g.textContent='Try again'; ov.querySelector('#dlerr').textContent=e.message; });
