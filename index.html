@@ -291,11 +291,13 @@
     who.innerHTML='<span class="customer-name">'+esc(displayName(o))+'</span>'+
       '<span class="sub">'+sub+'</span>'+extra+
       (o.note?'<span class="note-text">&#128221; '+esc(o.note)+'</span>':'');
-    var nb=document.createElement('button');
-    nb.className='note-btn';
-    nb.textContent=o.note?'edit note':'+ add note';
-    nb.onclick=function(e){ e.stopPropagation(); openNote(o); };
-    who.appendChild(nb);
+    if(!o.test){
+      var nb=document.createElement('button');
+      nb.className='note-btn';
+      nb.textContent=o.note?'edit note':'+ add note';
+      nb.onclick=function(e){ e.stopPropagation(); openNote(o); };
+      who.appendChild(nb);
+    }
     card.appendChild(who);
 
     var tag=document.createElement('span');
