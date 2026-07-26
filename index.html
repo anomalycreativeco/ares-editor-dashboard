@@ -190,6 +190,7 @@
       <label>Sort by:</label>
       <select id="sortSelect" onchange="applyView()">
         <option value="default">Default (Delivery Priority)</option>
+        <option value="spf">Running order (Session &#8594; Platform &#8594; Flight)</option>
         <option value="session-asc">Session (1 &#8594; up)</option>
         <option value="session-desc">Session (up &#8594; 1)</option>
         <option value="platform-asc">Platform (1 &#8594; up)</option>
@@ -436,6 +437,7 @@
     var us=function(o){ return o.roster?Number(o.roster.session)||999:999; };
     var up=function(o){ return o.roster?Number(o.roster.platform)||999:999; };
     switch(mode){
+      case 'spf': return function(a,b){ return us(a)-us(b) || up(a)-up(b) || uf(a).localeCompare(uf(b)) || displayName(a).localeCompare(displayName(b)); };
       case 'session-asc': return function(a,b){ return us(a)-us(b); };
       case 'session-desc': return function(a,b){ return us(b)-us(a); };
       case 'platform-asc': return function(a,b){ return up(a)-up(b); };
