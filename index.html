@@ -330,7 +330,10 @@
           card._dl.classList.add('bad'); card._dlerr.style.color=''; card._dlerr.textContent=err.message;
         });
     }
-    if(o.split && !o.fulfilled){
+    // Any order with a highlight reel is a two-part delivery: photos/video
+    // and the reel are always separate (the reel is 1 week regardless of the
+    // PV speed), so it isn't complete until BOTH boxes are checked.
+    if(o.highlight && !o.fulfilled){
       cbc.classList.add('cb2');
       var mk=function(tag, done, part, title){
         var w=document.createElement('label'); w.title=title;
@@ -340,7 +343,7 @@
         w.appendChild(c); w.appendChild(s);
         return w;
       };
-      cbc.appendChild(mk('PV', !o.mainOpen, 'main', 'Deliver photos/video (rush speed)'));
+      cbc.appendChild(mk('PV', !o.mainOpen, 'main', 'Deliver photos/video'));
       cbc.appendChild(mk('HL', !o.hlOpen, 'hl', 'Deliver highlight reel (1 week)'));
     } else {
       var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
