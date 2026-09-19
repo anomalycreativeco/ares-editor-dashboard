@@ -96,6 +96,12 @@
   .dl-err{ color:#ff5c5c; font-size:11px; margin-top:3px; }
   .dl-view{ color:var(--green); font-size:13px; text-decoration:none; }
   .dl-view:hover{ text-decoration:underline; }
+  .song-input{ width:100%; margin-top:8px; padding:6px 8px; border-radius:4px; border:1px solid var(--panel2); background:#000; color:#fff; font-size:12px; }
+  .song-input:focus{ outline:none; border-color:var(--green); }
+  .song-input.has{ border-color:#1f6f1f; }
+  .song-msg{ font-size:11px; color:var(--mut); margin-top:3px; min-height:14px; }
+  .song-msg.ok{ color:var(--green); }
+  .song-msg.bad{ color:#ff5c5c; }
   .note-text{ display:block; color:var(--orange); font-size:12px; font-style:italic; margin-top:4px; }
   .note-btn{ background:none; border:0; color:var(--mut); font-size:11px; cursor:pointer; padding:0; margin-top:3px; text-align:left; text-decoration:underline; }
   .note-btn:hover{ color:#fff; }
@@ -151,6 +157,7 @@
     .lifter-tag{ display:inline-block; min-width:0; margin:8px 8px 0 0; }
     .package-type{ margin-top:6px; }
     .dl-input{ margin-top:8px; font-size:16px; padding:10px; } /* 16px stops iOS zoom */
+    .song-input{ font-size:16px; padding:10px; }
     .badge{ display:inline-block; min-width:0; margin:8px 8px 0 0; padding:5px 10px; }
     .note-text{ margin-top:6px; }
 
@@ -333,6 +340,9 @@
     // Any order with a highlight reel is a two-part delivery: photos/video
     // and the reel are always separate (the reel is 1 week regardless of the
     // PV speed), so it isn't complete until BOTH boxes are checked.
+    // A reel bought on its own (no photo/video line) only gets the HL box -
+    // otherwise an empty PV half would render as already delivered.
+    var hasMain=o.items.some(function(i){ return !/highlight/i.test(i.title); });
     if(o.highlight && !o.fulfilled){
       cbc.classList.add('cb2');
       var mk=function(tag, done, part, title){
@@ -343,7 +353,7 @@
         w.appendChild(c); w.appendChild(s);
         return w;
       };
-      cbc.appendChild(mk('PV', !o.mainOpen, 'main', 'Deliver photos/video'));
+      if(hasMain) cbc.appendChild(mk('PV', !o.mainOpen, 'main', 'Deliver photos/video'));
       cbc.appendChild(mk('HL', !o.hlOpen, 'hl', 'Deliver highlight reel (1 week)'));
     } else {
       var cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.checked=o.fulfilled;
@@ -389,6 +399,30 @@
       var addon=/highlight/i.test(i.title);
       return '<span'+(addon?' class="add"':'')+'>'+esc(i.title)+'</span>';
     }).join('');
+    // Highlight reels need the lifter's song: saved onto the Shopify order
+    // ("Song choice" attribute) when the field loses focus or on Enter.
+    if(o.highlight){
+      var si=document.createElement('input');
+      si.type='text'; si.className='song-input'+(o.song?' has':''); si.placeholder='🎵 Song choice for reel';
+      si.value=o.song||''; si.title='Song the lifter wants on their highlight reel';
+      var sm=document.createElement('div'); sm.className='song-msg';
+      var saved=o.song||'';
+      var saveSong=function(){
+        var v=si.value.trim();
+        if(v===saved) return;
+        si.disabled=true; sm.className='song-msg'; sm.textContent='Saving...';
+        api({action:'song',pin:PIN,orderId:o.id,song:v}).then(function(){
+          saved=v; o.song=v; si.disabled=false;
+          si.classList.toggle('has',!!v);
+          sm.className='song-msg ok'; sm.textContent=v?'Song saved':'Song cleared';
+          setTimeout(function(){ if(sm.textContent==='Song saved'||sm.textContent==='Song cleared') sm.textContent=''; },2500);
+        }).catch(function(err){ si.disabled=false; sm.className='song-msg bad'; sm.textContent=err.message; });
+      };
+      si.onclick=function(e){ e.stopPropagation(); };
+      si.onblur=saveSong;
+      si.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); si.blur(); } };
+      pkg.appendChild(si); pkg.appendChild(sm);
+    }
     card.appendChild(pkg);
 
     // delivery link column
