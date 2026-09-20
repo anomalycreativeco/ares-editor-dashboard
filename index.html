@@ -390,7 +390,10 @@
     var tag=document.createElement('span');
     if(o.roster){
       tag.className='lifter-tag';
-      tag.textContent='S'+o.roster.session+', P'+o.roster.platform+', Flight '+o.roster.flight;
+      // "~" = matched by last name + first initial (buyer used a nickname);
+      // hover shows who it matched so the editor can sanity-check.
+      tag.textContent=(o.roster.fuzzy?'~ ':'')+'S'+o.roster.session+', P'+o.roster.platform+', Flight '+o.roster.flight;
+      if(o.roster.name) tag.title=(o.roster.fuzzy?'Closest roster match: ':'Roster: ')+o.roster.name;
     } else { tag.className='lifter-tag unknown'; tag.textContent='roster n/a'; }
     card.appendChild(tag);
 
