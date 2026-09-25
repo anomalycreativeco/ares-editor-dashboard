@@ -51,6 +51,13 @@
   .section-header.same{ color:var(--red); border-bottom-color:var(--red); }
   .section-header.exp{ color:var(--orange); border-bottom-color:var(--orange); }
   .section-header.done{ color:var(--green); border-bottom-color:var(--green); }
+  .section-header.hidden-h{ color:var(--mut); cursor:pointer; user-select:none; font-size:14px; }
+  .section-header.hidden-h .n{ color:var(--mut); margin-left:6px; }
+  .section-header.hidden-h .sub-h{ font-weight:400; text-transform:none; letter-spacing:0; font-size:12px; margin-left:10px; color:#555; }
+  .order-card.hid{ opacity:.45; border-left-color:#333; }
+  .order-card.hid .customer-name{ text-decoration:line-through; }
+  .badge.hid{ background:#333; color:#bbb; }
+  .combined{ display:inline-block; margin-left:6px; font-size:10px; font-weight:700; letter-spacing:.06em; color:#000; background:var(--orange); padding:2px 6px; border-radius:3px; vertical-align:middle; }
   .orders-list{ display:grid; gap:12px; }
   .empty{ color:var(--mut); padding:16px 2px; font-size:14px; }
 
@@ -227,6 +234,13 @@
     <div class="section-header done">&#10003; Completed</div>
     <div class="orders-list" id="listDone"></div>
   </div>
+  <div class="section" id="secHidden">
+    <div class="section-header hidden-h" id="hiddenHeader" onclick="toggleHidden()">
+      <span id="hiddenArrow">&#9656;</span> Hidden <span class="n" id="hiddenCount"></span>
+      <span class="sub-h">refunded / cancelled / unpaid &mdash; nothing to deliver</span>
+    </div>
+    <div class="orders-list" id="listHidden" style="display:none"></div>
+  </div>
 </div>
 
 <script>
@@ -297,7 +311,7 @@
     var t=document.getElementById('tabs'); t.innerHTML='';
     codes.forEach(function(c){
       var m=DATA.meets[c];
-      var open=m.orders.filter(function(o){return !o.fulfilled;}).length;
+      var open=m.orders.filter(function(o){return !o.fulfilled && !o.hidden;}).length;
       var b=document.createElement('button');
       b.className='tab'+(c===ACTIVE?' active':'');
       b.innerHTML=esc(m.name)+'<span class="n">'+open+'</span>';
@@ -317,9 +331,25 @@
 
   function orderCard(o){
     var card=document.createElement('div');
-    card.className='order-card'+(o.fulfilled?' done':(o.speed===0?' same':o.speed===1?' exp':''));
+    card.className='order-card'+(o.hidden?' hid':o.fulfilled?' done':(o.speed===0?' same':o.speed===1?' exp':''));
 
     var cbc=document.createElement('div'); cbc.className='checkbox-container';
+    if(o.hidden){
+      // Refunded / cancelled: keep it visible for the record, but nothing
+      // can be delivered - no boxes, no link field.
+      var who0=document.createElement('div');
+      who0.innerHTML='<span class="customer-name">'+esc(displayName(o))+'</span>'+
+        '<span class="sub">'+esc(o.name)+(o.billing?' &middot; '+esc(o.billing):'')+(o.email?' &middot; '+esc(o.email):'')+'</span>'+
+        (o.note?'<span class="note-text">&#128221; '+esc(o.note)+'</span>':'');
+      card.appendChild(cbc); card.appendChild(who0);
+      var t0=document.createElement('span'); t0.className='lifter-tag unknown'; t0.textContent='—'; card.appendChild(t0);
+      var p0=document.createElement('div'); p0.className='package-type';
+      p0.innerHTML=o.items.map(function(i){ return '<span>'+esc(i.title)+'</span>'; }).join(''); card.appendChild(p0);
+      var r0=document.createElement('div'); r0.innerHTML='<span class="badge hid">'+esc(o.hiddenReason||'Hidden')+'</span>'; card.appendChild(r0);
+      var h0=document.createElement('span'); h0.className='badge no-hl'; h0.innerHTML='&mdash;'; card.appendChild(h0);
+      var s0=document.createElement('span'); s0.className='badge standard'; s0.textContent=speedLabel(o.speed); card.appendChild(s0);
+      return card;
+    }
     function deliverPart(part, box){
       var link=normalizeLink(card._dl && card._dl.value);
       if(!link){
@@ -375,7 +405,8 @@
       extra='<span class="sub">Delivered '+fmtDate(o.deliveredDate)+
         (o.deliveredLink?' &middot; <a href="'+esc(o.deliveredLink)+'" target="_blank" rel="noopener">view media</a>':'')+'</span>';
     }
-    who.innerHTML='<span class="customer-name">'+esc(displayName(o))+'</span>'+
+    who.innerHTML='<span class="customer-name">'+esc(displayName(o))+
+      (o.combined?'<span class="combined" title="'+esc(o.combined.join(' + '))+'">'+o.combined.length+' ORDERS</span>':'')+'</span>'+
       '<span class="sub">'+sub+'</span>'+extra+
       (o.note?'<span class="note-text">&#128221; '+esc(o.note)+'</span>':'');
     if(!o.test){
@@ -492,9 +523,21 @@
     }
   }
 
+  function toggleHidden(){
+    var l=document.getElementById('listHidden');
+    var open=l.style.display==='none';
+    l.style.display=open?'':'none';
+    document.getElementById('hiddenArrow').innerHTML=open?'&#9662;':'&#9656;';
+  }
+
   function renderMeet(){
     var m=DATA.meets[ACTIVE]||{orders:[]};
-    var orders=m.orders.slice();
+    var hiddenOrders=m.orders.filter(function(o){return o.hidden;});
+    var orders=m.orders.filter(function(o){return !o.hidden;});
+    document.getElementById('secHidden').style.display=hiddenOrders.length?'':'none';
+    document.getElementById('hiddenCount').textContent=hiddenOrders.length;
+    var hl=document.getElementById('listHidden'); hl.innerHTML='';
+    hiddenOrders.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);}).forEach(function(o){ hl.appendChild(orderCard(o)); });
 
     var total=orders.length;
     var rushN=orders.filter(function(o){return o.speed<=1 && !o.fulfilled;}).length;
